@@ -10,7 +10,8 @@ data = pickle.load(open("ytc_py.pkl", 'rb'))
 X_train, y_train = data['X_train'], data['y_train']
 X_test, y_test = data['X_test'], data['y_test']
 N = 10
-gamma = 1.5
+M = 400
+gamma = 1.0
 
 #X_test = X_test[:20]
 
@@ -31,7 +32,7 @@ for i in tqdm(range(0, len(X_train), 3)):
         for k in range(len(X.T[0])):
             s = X[j]
             t = X[k]
-            Y[j,k] = np.exp(-LA.norm(s-t, ord=2)/2/gamma/gamma)
+            Y[j,k] = (1+np.dot(s, t)) ** M
     W, v = LA.eig(Y)
     a = v.T[0:N]
     matrix = np.vstack((matrix, a))
@@ -45,7 +46,7 @@ for i in tqdm(range(len(X_test))):
     y = np.empty((400, 400), float)
     for j in range(len(x.T[0])):
         for k in range(len(x.T[0])):
-            y[j,k] = np.exp(-LA.norm(x[j]-x[k], ord=2)/2/gamma/gamma)
+            y[j,k] = (1+np.dot(x[j], x[k])) ** M
 
     W, v = LA.eig(y)
     s = v.T[0:N]
