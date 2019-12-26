@@ -4,6 +4,7 @@ import numpy.linalg as LA
 from matplotlib import pyplot as plt
 import matplotlib.cm as cm
 from sklearn.decomposition import PCA
+from tqdm import tqdm
 
 
 data = pickle.load(open("ytc_py.pkl", 'rb'))
@@ -17,36 +18,37 @@ print("Feature dimension of each image: ", X_train[0].shape[0])
 pca = PCA(n_components=N)
 matrix = np.empty((0, 400), float)
 
-for i in range(len(X_train)):
-    X = X_train[i].T
-    X = X / 255.0
-    pca.fit(X)
-    cv = pca.get_covariance()
-    W, v = LA.eig(cv)
-    matrix = np.vstack((matrix, v.T[0:N]))
+for i in range(0, len(X_train), 3):
+    X_0 = X_train[i]
+    X_1 = X_train[i + 1]
+    X_2 = X_train[i + 2]
+    X = np.concatenate([X_0.T, X_1.T, X_2.T])
+    X = X.T
+    Y = np.dot(X, X.T)
+    W, v = LA.eig(Y)
+    a = v.T[0:N]
+    matrix = np.vstack((matrix, a))
 
-print(matrix.shape) # 1410 * 400 = 3 * 47*10 * 400
+print(matrix.shape) # 470 * 400 = 47*10 * 400
 
 correct = 0
 
-for i in range(len(X_test)):
+for i in tqdm(range(len(X_test))):
     x = X_test[i]
-    x = x / 255.0
-    pca.fit(x.T)
-    cv = pca.get_covariance()
-    W, v = LA.eig(cv)
+    y = np.dot(x, x.T)
+    W, v = LA.eig(y)
     s = v.T[0:N]
     ans = 0
     ans_idx = 0
-
-    for j in range(N):
-        for k in range(len(matrix.T[0])):
-            ret = np.dot(s[j], matrix[k])
-            if (ans < ret):
-                ans = ret
-                ans_idx = k
+    for j in range(0, len(matrix.T[0]), N):
+        a = matrix[j:j+N]
+        ret = np.dot(np.dot(np.dot(a, s.T), s), a.T)
+        W, v = LA.eig(ret)
+        if (ans < W[0]):
+            ans = W[0]
+            ans_idx = j
     
-    if (y_train[int(ans_idx/10)] == y_test[i]):
+    if (y_train[3*int(ans_idx/N)] == y_test[i]):
         correct = correct + 1
 
 print("ans = " + str(correct / len(X_test)))
